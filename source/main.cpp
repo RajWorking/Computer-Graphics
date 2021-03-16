@@ -1,6 +1,7 @@
 #include "main.h"
 #include "timer.h"
 #include "ball.h"
+#include "camera.h"
 
 using namespace std;
 
@@ -13,6 +14,7 @@ GLFWwindow *window;
 **************************/
 
 Ball ball1;
+Camera cam;
 
 float screen_zoom = 1, screen_center_x = 0, screen_center_y = 0;
 float camera_rotation_angle = 0;
@@ -30,16 +32,20 @@ void draw() {
     glUseProgram (programID);
 
     // Eye - Location of camera. Don't change unless you are sure!!
-    glm::vec3 eye ( 5*cos(camera_rotation_angle*M_PI/180.0f), 0, 5*sin(camera_rotation_angle*M_PI/180.0f) );
+    // glm::vec3 eye ( 5*cos(camera_rotation_angle*M_PI/180.0f), 0, 5*sin(camera_rotation_angle*M_PI/180.0f) );
+    glm::vec3 eye (0, 0, 10);
+    
     // Target - Where is the camera looking at.  Don't change unless you are sure!!
     glm::vec3 target (0, 0, 0);
     // Up - Up vector defines tilt of camera.  Don't change unless you are sure!!
     glm::vec3 up (0, 1, 0);
 
     // Compute Camera matrix (view)
-    Matrices.view = glm::lookAt( eye, target, up ); // Rotating Camera for 3D
+    // Matrices.view = glm::lookAt( eye, target, up ); // Rotating Camera for 3D
     // Don't change unless you are sure!!
     // Matrices.view = glm::lookAt(glm::vec3(0, 0, 3), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)); // Fixed camera for 2D (ortho) in XY plane
+
+    Matrices.view = cam.getViewMatrix();
 
     // Compute ViewProject matrix as view/camera might not be changed for this frame (basic scenario)
     // Don't change unless you are sure!!
@@ -57,14 +63,104 @@ void draw() {
 void tick_input(GLFWwindow *window) {
     int left  = glfwGetKey(window, GLFW_KEY_LEFT);
     int right = glfwGetKey(window, GLFW_KEY_RIGHT);
-    if (left) {
-        // Do something
+
+    int obj_x_pos = glfwGetKey(window, GLFW_KEY_E);
+    int obj_x_neg = glfwGetKey(window, GLFW_KEY_W);
+    int obj_y_pos = glfwGetKey(window, GLFW_KEY_D);
+    int obj_y_neg = glfwGetKey(window, GLFW_KEY_S);
+    int obj_z_pos = glfwGetKey(window, GLFW_KEY_C);
+    int obj_z_neg = glfwGetKey(window, GLFW_KEY_X);
+
+    int look_here = glfwGetKey(window, GLFW_KEY_F);
+    int cam_rot = glfwGetKey(window, GLFW_KEY_R);
+
+    int cam_x_pos = glfwGetKey(window, GLFW_KEY_Y);
+    int cam_x_neg = glfwGetKey(window, GLFW_KEY_T);
+    int cam_y_pos = glfwGetKey(window, GLFW_KEY_H);
+    int cam_y_neg = glfwGetKey(window, GLFW_KEY_G);
+    int cam_z_pos = glfwGetKey(window, GLFW_KEY_N);
+    int cam_z_neg = glfwGetKey(window, GLFW_KEY_B);
+
+    int obj_rotate_anti = glfwGetKey(window, GLFW_KEY_Z);
+    int obj_rotate = glfwGetKey(window, GLFW_KEY_A);
+    int cam1 = glfwGetKey(window, GLFW_KEY_1);
+    int cam2 = glfwGetKey(window, GLFW_KEY_2);
+    int cam3 = glfwGetKey(window, GLFW_KEY_3);
+
+    if (obj_x_pos)
+        ball1.move(1, 0);
+    if (obj_x_neg)
+        ball1.move(-1, 0);
+    if(obj_y_pos)
+        ball1.move(1, 1);
+    if(obj_y_neg)
+        ball1.move(-1,1);
+    if(obj_z_pos)
+        ball1.move(1,2);
+    if(obj_z_neg)
+        ball1.move(-1,2);
+
+    if (cam_x_pos)
+        cam.moveCamera(1, 0);
+    if (cam_x_neg)
+        cam.moveCamera(-1, 0);
+    if(cam_y_pos)
+        cam.moveCamera(1, 1);
+    if(cam_y_neg)
+        cam.moveCamera(-1,1);
+    if(cam_z_pos)
+        cam.moveCamera(1,2);
+    if(cam_z_neg)
+        cam.moveCamera(-1,2);
+
+    if(look_here)
+        cam.updateCamera(ball1.position);
+
+    if(cam_rot) {
+        cam.updateCamera(ball1.position);
+        cam.rotateCamera();
     }
+
+    if(cam1)
+    {
+        cam.posEye(1);
+        cam.Up = cam.WorldUp;
+        cam.updateCamera(ball1.position);
+    }
+    if(cam2)
+    {
+        cam.posEye(2);
+        cam.Up = cam.WorldUp;
+        cam.updateCamera(ball1.position);
+    }
+    if(cam3)
+    {
+        cam.posEye(3);
+        cam.Up = cam.WorldUp;
+        cam.updateCamera(ball1.position);
+    }
+
+    if(obj_rotate_anti)
+        ball1.speed = 1;
+    else if(obj_rotate)
+        ball1.speed = -1;
+    else
+        ball1.speed = 0;
+
+    // Debug
+    if(glfwGetKey(window, GLFW_KEY_P)){
+        cout<<"Details\n";
+        cout<<ball1.position.x<<" "<<ball1.position.y<<" "<<ball1.position.z<<"\n";
+        cam.printVec(cam.Eye, "eye");
+        cam.printVec(cam.Up, "up");
+        cout<<"------\n";
+    }
+
 }
 
 void tick_elements() {
     ball1.tick();
-    camera_rotation_angle += 1;
+    // camera_rotation_angle += 1;
 }
 
 /* Initialize the OpenGL rendering properties */
@@ -73,7 +169,15 @@ void initGL(GLFWwindow *window, int width, int height) {
     /* Objects should be created before any other gl function and shaders */
     // Create the models
 
-    ball1       = Ball(0, 0, COLOR_RED);
+    int ind;
+    cout<<"Which dodecahedron?\n"
+        <<"1 --> hexagonal dipyramid\n"
+        <<"2 --> undecagonal pyramid\n"
+        <<"3 --> pentagonal antiprism\n";
+    cin>>ind;
+
+    ball1 = Ball(0, 0, ind);
+    cam = Camera();
 
     // Create and compile our GLSL program from the shaders
     programID = LoadShaders("../source/shaders/shader.vert", "../source/shaders/shader.frag");
@@ -99,8 +203,8 @@ void initGL(GLFWwindow *window, int width, int height) {
 
 int main(int argc, char **argv) {
     srand(time(0));
-    int width  = 600;
-    int height = 600;
+    int width  = 900;
+    int height = 900;
 
     window = initGLFW(width, height);
 
@@ -138,5 +242,6 @@ void reset_screen() {
     float bottom = screen_center_y - 4 / screen_zoom;
     float left   = screen_center_x - 4 / screen_zoom;
     float right  = screen_center_x + 4 / screen_zoom;
-    Matrices.projection = glm::ortho(left, right, bottom, top, 0.1f, 500.0f);
+    // Matrices.projection = glm::ortho(left, right, bottom, top, 0.1f, 500.0f);
+    Matrices.projection = glm::perspective(45.0f, 900.0f / 900.0f, 0.1f, 100.0f);
 }
