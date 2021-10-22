@@ -1,0 +1,14 @@
+W: Move forward
+S: Move Backward
+
+A: Move Left
+D: Move right
+
+Q: Move down
+X: Move up
+
+Game is over when lives are 0.
+
+How to run: 
+npm install
+npm start

@@ -1,0 +1,9 @@
+{
+    "CAM_SPEED": 0.1,
+    "MY_SPEED": 0.5,
+    "ROT_SPEED": 0.03,
+    "BULLET_SPEED": 0.6,
+    "ENEMY_SPEED": 0.1,
+    "ENEMY_RATE": 0.3,
+    "LIVES": 10
+}
